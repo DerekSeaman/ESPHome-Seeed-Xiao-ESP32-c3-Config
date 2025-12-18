@@ -89,6 +89,11 @@ switch:
     turn_off_action:
       - output.turn_off: ant_gpio2  # LOW → internal antenna
 
+# Buttons
+button:
+  - platform: restart
+    name: "Restart Device"
+
 # Diagnostics and basics
 sensor:
   - platform: uptime
