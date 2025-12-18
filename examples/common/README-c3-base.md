@@ -17,9 +17,11 @@ Key sections and what they do
 
   - `framework: esp-idf`: uses ESP-IDF framework.
 
-- `esphome` -> `on_boot`:
+- `esphome`:
 
-  - Runs actions when the device boots. The base toggles GPIO2 output used for antenna selection (turning the external antenna on/off). If you add hardware that uses this pin, be aware of these actions.
+  - `name: ${device_name}` and `friendly_name: ${friendly_name}`: the base config now includes these, so device YAMLs no longer need to define the `esphome:` section — just provide the substitutions.
+
+  - `on_boot`: runs actions when the device boots. The base toggles GPIO2 output used for antenna selection (turning the external antenna on/off). If you add hardware that uses this pin, be aware of these actions.
 
 - `logger`:
 
@@ -42,6 +44,8 @@ Key sections and what they do
 - `wifi`:
 
   - Domain and `use_address` set mDNS/host naming (e.g., `${device_name}.local`).
+
+  - `power_save_mode: NONE`: disables WiFi power saving for better BLE performance and more consistent connectivity.
 
   - `fast_connect` and `enable_on_boot` are convenience flags for reconnect behaviour.
 
@@ -86,13 +90,11 @@ How device YAMLs use the base
     api_key: "..."
     ota_password: "..."
 
-  esphome:
-    name: ${device_name}
-    friendly_name: ${friendly_name}
-
   packages:
     device: !include "common/Seeed xiao ESP32-c3 base.yaml"
   ```
+
+  Note: The `esphome:` section is no longer needed in device YAMLs — the base config now includes `name:` and `friendly_name:` using the substitutions you provide.
 
 Customization tips
 
