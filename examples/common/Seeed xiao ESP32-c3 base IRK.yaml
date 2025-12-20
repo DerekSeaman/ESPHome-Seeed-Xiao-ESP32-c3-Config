@@ -60,6 +60,10 @@ wifi:
     ssid: "${friendly_name} Fallback"
     password: !secret wifi_captive
     ap_timeout: 120s
+  on_disconnect:
+    then:
+      - lambda: |-
+          id(_wifi_disconnects_since_boot)++;
 
 captive_portal:
 
@@ -100,6 +104,12 @@ text_sensor:
       entity_category: diagnostic
     ip_address:
       name: "IP"
+      entity_category: diagnostic
+    ssid:
+      name: "SSID"
+      entity_category: diagnostic
+    mac_address:
+      name: "MAC"
       entity_category: diagnostic
 
   - platform: irk_capture
@@ -148,7 +158,7 @@ text:
       name: "BLE Device Name"
       mode: text
 
-# Diagnostics and basics
+# Basics + Wi-Fi disconnect count (since boot)
 sensor:
   - platform: uptime
     name: "Uptime"
@@ -163,9 +173,26 @@ sensor:
     entity_category: diagnostic
 
   - platform: wifi_signal
-    name: "Wi-Fi Signal"
+    id: wifi_signal_dbm
+    name: "Wi-Fi RSSI"
     update_interval: 30s
     entity_category: diagnostic
+
+  - platform: template
+    name: "Wi-Fi Disconnects (since boot)"
+    id: wifi_disconnects_since_boot_sensor
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    update_interval: 30s
+    lambda: |-
+        return id(_wifi_disconnects_since_boot);
+
+# Globals (since-boot only; not restored)
+globals:
+  - id: _wifi_disconnects_since_boot
+    type: int
+    restore_value: no
+    initial_value: '0'
 
 time:
   - platform: sntp

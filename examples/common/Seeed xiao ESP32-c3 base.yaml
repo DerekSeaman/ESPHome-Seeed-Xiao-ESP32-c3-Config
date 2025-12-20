@@ -40,6 +40,10 @@ wifi:
     ssid: "${friendly_name} Fallback"
     password: !secret wifi_captive
     ap_timeout: 120s
+  on_disconnect:
+    then:
+      - lambda: |-
+          id(_wifi_disconnects_since_boot)++;
 
 captive_portal:
 
@@ -58,17 +62,43 @@ output:
     id: ant_gpio2
 
 # BLE scanning and Bluetooth proxy for Home Assistant
+# Default Aggressive (100% duty cycle); user selection persists across reboots
 esp32_ble_tracker:
+  id: ble_tracker
   scan_parameters:
     active: true
-    interval: 211ms
-    window: 180ms
+    interval: 160ms
+    window: 160ms
     continuous: true
 
 bluetooth_proxy:
   active: true
 
-# Text sensors for Wi-Fi info
+# Selector to switch only between Aggressive and Balanced
+select:
+  - platform: template
+    name: "BLE Scan Profile"
+    id: sel_ble_scan_profile
+    optimistic: true
+    restore_value: true
+    initial_option: "Aggressive"
+    options:
+      - "Aggressive"
+      - "Balanced"
+    set_action:
+      - lambda: |-
+            auto opt = id(sel_ble_scan_profile).current_option();
+            if (opt == "Aggressive") {
+                id(ble_tracker).set_scan_interval(160);
+                id(ble_tracker).set_scan_window(160);
+                id(ble_tracker).set_scan_active(true);
+            } else {
+                id(ble_tracker).set_scan_interval(320);
+                id(ble_tracker).set_scan_window(160);
+                id(ble_tracker).set_scan_active(true);
+            }
+
+# Text sensors
 text_sensor:
   - platform: wifi_info
     bssid:
@@ -76,6 +106,12 @@ text_sensor:
       entity_category: diagnostic
     ip_address:
       name: "IP"
+      entity_category: diagnostic
+    ssid:
+      name: "SSID"
+      entity_category: diagnostic
+    mac_address:
+      name: "MAC"
       entity_category: diagnostic
 
 # Switches
@@ -94,7 +130,7 @@ button:
   - platform: restart
     name: "Restart Device"
 
-# Diagnostics and basics
+# Basics + Wi-Fi disconnect count (since boot)
 sensor:
   - platform: uptime
     name: "Uptime"
@@ -109,9 +145,26 @@ sensor:
     entity_category: diagnostic
 
   - platform: wifi_signal
-    name: "Wi-Fi Signal"
+    id: wifi_signal_dbm
+    name: "Wi-Fi RSSI"
     update_interval: 30s
     entity_category: diagnostic
+
+  - platform: template
+    name: "Wi-Fi Disconnects (since boot)"
+    id: wifi_disconnects_since_boot_sensor
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    update_interval: 30s
+    lambda: |-
+        return id(_wifi_disconnects_since_boot);
+
+# Globals (since-boot only; not restored)
+globals:
+  - id: _wifi_disconnects_since_boot
+    type: int
+    restore_value: no
+    initial_value: '0'
 
 time:
   - platform: sntp
